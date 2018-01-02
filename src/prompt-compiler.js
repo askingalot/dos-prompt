@@ -1,29 +1,27 @@
-function log(thing) {
-  console.log(thing);
-  return thing;
-}
 const TYPE = {
-    AMP: 'AMP',
-    PIPE: 'PIPE',
-    LEFT_PAREN: 'LEFT_PAREN',
-    DATE: 'DATE',
-    ESCAPE: 'ESCAPE',
-    RIGHT_PAREN: 'RIGHT_PAREN',
-    GREATER_THAN: 'GREATER_THAN',
-    BACKSPACE: 'BACKSPACE',
-    LESS_THAN: 'LESS_THAN',
-    DRIVE: 'DRIVE',
-    DRIVE_AND_PATH: 'DRIVE_AND_PATH',
-    EQUAL: 'EQUAL',
-    SPACE: 'SPACE',
-    TIME: 'TIME',
-    VERSION: 'VERSION',
-    NEW_LINE : 'NEW_LINE',
-    DOLLAR: 'DOLLAR',
-    PUSHD_DEPTH: 'PUSHD_DEPTH',
-    REMOTE_NAME: 'REMOTE_NAME',
-    LITERAL: 'LITERAL',
-  };
+  AMP: 'AMP',
+  PIPE: 'PIPE',
+  LEFT_PAREN: 'LEFT_PAREN',
+  DATE: 'DATE',
+  ESCAPE: 'ESCAPE',
+  RIGHT_PAREN: 'RIGHT_PAREN',
+  GREATER_THAN: 'GREATER_THAN',
+  BACKSPACE: 'BACKSPACE',
+  LESS_THAN: 'LESS_THAN',
+  DRIVE: 'DRIVE',
+  DRIVE_AND_PATH: 'DRIVE_AND_PATH',
+  EQUAL: 'EQUAL',
+  SPACE: 'SPACE',
+  TIME: 'TIME',
+  VERSION: 'VERSION',
+  NEW_LINE : 'NEW_LINE',
+  DOLLAR: 'DOLLAR',
+  PUSHD_DEPTH: 'PUSHD_DEPTH',
+  REMOTE_NAME: 'REMOTE_NAME',
+  LITERAL: 'LITERAL',
+  ESCAPE_SEQUENCE: 'ESCAPE_SEQUENCE',
+  UNKNOWN: 'UNKNOWN'
+};
 
 const TOKEN_TEMPLATES = {
   '$A': {
@@ -101,14 +99,34 @@ const TOKEN_TEMPLATES = {
     type: TYPE.REMOTE_NAME, lexeme: '$M',
     description: 'Displays the remote name associated with the current drive letter or the empty string if current drive is not a network drive.'
   },
+  'literal': {
+    type: TYPE.LITERAL, lexeme: '',
+    description: 'A literal value.'
+  },
+  'escape': {
+    type: TYPE.ESCAPE_SEQUENCE, lexeme: '',
+    description: 'An escape sequence for use with $E.'
+  },
+  'unknown': {
+    type: TYPE.UNKNOWN, description: 'An unknown value. Will be ignred.'
+  }
 };
 
-function token(lexeme, position) {
-  const nonLiteral = TOKEN_TEMPLATES[lexeme.toUpperCase()];
-  return nonLiteral
-    ? Object.assign({}, nonLiteral, { position })
-    : { type: TYPE.LITERAL, description: 'A literal value.', lexeme, position };
+function specialToken(lexeme, position) {
+  const token = TOKEN_TEMPLATES[lexeme.toUpperCase()] || TOKEN_TEMPLATES['unknown'];
+  return Object.assign({}, token, { position })
 }
+
+function literalToken(lexeme, position) {
+  const token = TOKEN_TEMPLATES['literal'];
+  return Object.assign({}, token, { value: lexeme, lexeme, position })
+}
+
+function escapeSequenceToken(lexeme, position) {
+  const token = TOKEN_TEMPLATES['escape'];
+  return Object.assign({}, token, { value: lexeme, lexeme, position })
+}
+
 
 function element(innerHTML) {
   const el = document.createElement('span');
@@ -130,22 +148,35 @@ export function tokenize(input) {
 
     if (chars[i] === '$') {
       lexeme += chars[++i];
+      tokens.push(specialToken(lexeme, position));
     } else {
       while (i+1 < chars.length && chars[i+1] !== '$') {
         lexeme += chars[++i];
       }
+      tokens.push(literalToken(lexeme, position));
     }
 
-    tokens.push(token(lexeme, position));
+    if (lexeme.toUpperCase() === '$E') {
+      const newPosition = i;
+      let escSeq = chars[++i];
+
+      if (escSeq === '[') {
+        while (i+1 < chars.length && !chars[i+1].match(/[A-Za-z]/)) {
+          escSeq += chars[++i];
+        }
+        if (i+1 < chars.length) {
+          escSeq += chars[++i];
+        }
+      }
+
+      tokens.push(escapeSequenceToken(escSeq, newPosition));
+    }
   }
 
   return tokens;
 }
 
 export function parse(input) {
-  if (!input) {
-    throw new Error("Invalid input");
-  }
   const tokens = tokenize(input);
   const output = [];
 
@@ -153,7 +184,7 @@ export function parse(input) {
     const tok = tokens[i];
     output.push(tok);
 
-    if (tok.type === 'ESCAPE' && i+1 < tokens.length && tokens[i+1].type === 'LITERAL') {
+    if (tok.type === TYPE.ESCAPE && i+1 < tokens.length && tokens[i+1].type === TYPE.ESCAPE_SEQUENCE) {
       tok.arg = tokens[++i].lexeme;
     }
   }
@@ -162,6 +193,9 @@ export function parse(input) {
 }
 
 export function compile(input) {
+  if (!input) {
+    throw new Error("Invalid input");
+  }
   const tokens = parse(input);
   const output = [];
 
@@ -220,7 +254,7 @@ export function compile(input) {
         break;
       case TYPE.TIME:
         const time = new Date(),
-              hours = padLeft(time.getHours(), '  '),
+              hours = padLeft(time.getHours(), '  ').replace(' ', '&nbsp'),
               minutes = padLeft(time.getMinutes(), '00'),
               seconds = padLeft(time.getSeconds(), '00'),
               hundreds = padLeft(Math.floor(time.getMilliseconds() / 10), '00');
