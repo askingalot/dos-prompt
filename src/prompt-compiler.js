@@ -157,7 +157,9 @@ export function parse(input) {
   return output;
 }
 
-export function compile(tokens) {
+export function compile(input) {
+  const tokens = parse(input);
+
   return tokens.map(tok => {
     switch(tok.type) {
       case TYPE.AMP:
@@ -209,6 +211,8 @@ export function compile(tokens) {
         return element('+++');
       case TYPE.REMOTE_NAME:
         return element('machine-name');
+      case TYPE.LITERAL:
+        return element(tok.lexeme);
       default:
         throw new Error("Cannot compile prompt. Unknown token type");
     }
