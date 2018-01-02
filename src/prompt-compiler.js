@@ -159,62 +159,89 @@ export function parse(input) {
 
 export function compile(input) {
   const tokens = parse(input);
+  const output = [];
 
-  return tokens.map(tok => {
+  for (let i=0; i<tokens.length; i++) {
+    const tok = tokens[i];
+
     switch(tok.type) {
       case TYPE.AMP:
-        return element('&amp;');
+        output.push(element('&amp;'));
+        break;
       case TYPE.PIPE:
-        return element('|');
+        output.push(element('|'));
+        break;
       case TYPE.LEFT_PAREN:
-        return element('(');
+        output.push(element('('));
+        break;
       case TYPE.DATE:
         // FIXME: this format isn't right
         const dateString = new Date().toLocaleDateString('en-us', {
            weekday: 'short', year: 'numeric', month: 'numeric', day: 'numeric'
         });
-        return element(dateString);
+        output.push(element(dateString));
+        break;
       case TYPE.ESCAPE:
         // FIXME: This doesn't do anything
-        return element(`ESCAPE(${tok.arg})`);
+        output.push(element(`ESCAPE(${tok.arg})`));
+        break;
       case TYPE.RIGHT_PAREN:
-        return element(')');
+        output.push(element(')'));
+        break;
       case TYPE.GREATER_THAN:
-        return element('&gt;');
+        output.push(element('&gt;'));
+        break;
       case TYPE.BACKSPACE:
-        // FIXME: This doesn't do anything
-        return element('^H');
+        const prev = output.pop();
+        if (!prev) break;
+
+        output.push(element(prev.innerHTML.substring(0, prev.innerHTML.length - 1)));
+        break;
       case TYPE.LEFT_PAREN:
-        return element('&lt;');
+        output.push(element('&lt;'));
+        break;
       case TYPE.DRIVE:
-        return element('C');
+        output.push(element('C'));
+        break;
       case TYPE.DRIVE_AND_PATH:
-        return element('C:\\some\\path');
+        output.push(element('C:\\some\\path'));
+        break;
       case TYPE.EQUAL:
-        return element('=');
+        output.push(element('='));
+        break;
       case TYPE.SPACE:
-        return element('&nbsp;');
+        output.push(element('&nbsp;'));
+        break;
       case TYPE.TIME:
         // FIXME: this format isn't right
         let timeString = new Date().toLocaleDateString('en-us', {
           hour: 'numeric', minute: 'numeric', second: 'numeric' 
         });
         timeString += '.42';
-        return element(timeString);
+        output.push(element(timeString));
+        break;
       case TYPE.VERSION:
-        return element('Microsoft Windows [Version 10.0.16299.125]');
+        output.push(element('Microsoft Windows [Version 10.0.16299.125]'));
+        break;
       case TYPE.NEW_LINE:
-        return element('<br/>');
+        output.push(element('<br/>'));
+        break;
       case TYPE.DOLLAR:
-        return element('$');
+        output.push(element('$'));
+        break;
       case TYPE.PUSHD_DEPTH:
-        return element('+++');
+        output.push(element('+++'));
+        break;
       case TYPE.REMOTE_NAME:
-        return element('machine-name');
+        output.push(element('machine-name'));
+        break;
       case TYPE.LITERAL:
-        return element(tok.lexeme);
+        output.push(element(tok.lexeme));
+        break;
       default:
         throw new Error("Cannot compile prompt. Unknown token type");
     }
-  });
+  }
+
+  return output;
 }
