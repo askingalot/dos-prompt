@@ -116,6 +116,10 @@ function element(innerHTML) {
   return el;
 }
 
+function padLeft(subject, pad) {
+   return (pad + subject).slice(-pad.length);
+};
+
 export function tokenize(input) {
   const chars = input.split('');
   const tokens = [];
@@ -175,11 +179,13 @@ export function compile(input) {
         output.push(element('('));
         break;
       case TYPE.DATE:
-        // FIXME: this format isn't right
-        const dateString = new Date().toLocaleDateString('en-us', {
-           weekday: 'short', year: 'numeric', month: 'numeric', day: 'numeric'
-        });
-        output.push(element(dateString));
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const now = new Date(),
+              day = days[now.getDay()],
+              month = padLeft(now.getMonth() + 1, '00'),
+              date = padLeft(now.getDate(), '00'),
+              year = now.getFullYear();
+        output.push(element(`${day} ${month}/${date}/${year}`));
         break;
       case TYPE.ESCAPE:
         // FIXME: This doesn't do anything
@@ -213,12 +219,12 @@ export function compile(input) {
         output.push(element('&nbsp;'));
         break;
       case TYPE.TIME:
-        // FIXME: this format isn't right
-        let timeString = new Date().toLocaleDateString('en-us', {
-          hour: 'numeric', minute: 'numeric', second: 'numeric' 
-        });
-        timeString += '.42';
-        output.push(element(timeString));
+        const time = new Date(),
+              hours = padLeft(time.getHours(), '  '),
+              minutes = padLeft(time.getMinutes(), '00'),
+              seconds = padLeft(time.getSeconds(), '00'),
+              hundreds = padLeft(Math.floor(time.getMilliseconds() / 10), '00');
+        output.push(element(`${hours}:${minutes}:${seconds}.${hundreds}`));
         break;
       case TYPE.VERSION:
         output.push(element('Microsoft Windows [Version 10.0.16299.125]'));
