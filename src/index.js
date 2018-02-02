@@ -44,4 +44,4 @@ function app() {
   return app;
 }
 
-document.getElementById('app').appendChild(app());
+document.getElementsByTagName('body')[0].appendChild(app());
