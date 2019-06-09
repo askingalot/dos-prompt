@@ -3,6 +3,12 @@ import React from 'react';
 
 export const PromptForm = (props) => {
     return (
-        <h1>Form!</h1>
+        <fieldset id="prompt-form">
+            <label id="prompt-label" 
+                   htmlFor="prompt-input">Prompt&gt; </label>
+            <input autoFocus
+                   id="prompt-input" 
+                   onChange={(evt) => props.onChange(evt.target.value)}/>
+        </fieldset>
     );
 }

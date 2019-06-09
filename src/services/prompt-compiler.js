@@ -129,9 +129,15 @@ function escapeSequenceToken(lexeme, position) {
 
 
 function element(innerHTML) {
-  const el = document.createElement('span');
-  el.innerHTML = innerHTML;
-  return el;
+  // React doesn't like DOM elements
+  //const el = document.createElement('span');
+  //el.innerHTML = innerHTML;
+  return `<span>${innerHTML}</span>`;
+}
+function getInnerHTML(element) {
+  const start = "<span>".length;
+  const end = "</span>".length;
+  return element.substring(start, element.length - end);
 }
 
 function padLeft(subject, pad) {
@@ -235,9 +241,10 @@ export function compile(input) {
         const prev = output.pop();
         if (!prev) break;
 
-        output.push(element(prev.innerHTML.substring(0, prev.innerHTML.length - 1)));
+        const prevHtml = getInnerHTML(prev);
+        output.push(element(prevHtml.substring(0, prevHtml.length - 1)));
         break;
-      case TYPE.LEFT_PAREN:
+      case TYPE.LESS_THAN:
         output.push(element('&lt;'));
         break;
       case TYPE.DRIVE:
@@ -279,7 +286,7 @@ export function compile(input) {
         output.push(element(tok.lexeme));
         break;
       default:
-        throw new Error("Cannot compile prompt. Unknown token type");
+        output.push(element(''));
     }
   }
 

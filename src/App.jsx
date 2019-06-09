@@ -1,21 +1,20 @@
 import React, { Component } from 'react';
-import { Button } from 'reactstrap';
 import { PromptForm } from './components/PromptForm';
-
-import { compile } from './services/prompt-compiler';
-
-import logo from './logo.svg';
+import { PromptDisplay } from './components/PromptDisplay';
 import './App.css';
 
 class App extends Component {
-    hello = () => {
-        alert("hello");
-    }
+    state = {
+        promptInput: ""
+    };
+
+    onInputChange = (promptInput) => this.setState({promptInput});
 
     render() {
         return (
         <div className="App">
-            <PromptForm/>
+            <PromptForm onChange={this.onInputChange} />
+            <PromptDisplay input={this.state.promptInput} />
         </div>
         );
     }
